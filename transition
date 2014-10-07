@@ -1,16 +1,27 @@
 #!/usr/bin/env coffee
 
+moment = require 'moment'
+
 unless process.env.HOUMIO_SITEKEY
   console.log 'Please set env variable HOUMIO_SITEKEY'
-  process.exit
+  process.exit 1
 
-unless process.argv.length == 4
+unless process.argv.length == 4 and process.argv[3].length == 4
   console.log 'Usage: transition "Scene name" 2230'
   process.exit 1
 
 sceneName = process.argv[2]
+
 time = process.argv[3]
-hour = time[0..1]
-minute = time[2..3]
-console.log hour
-console.log minute
+hour = time.substring 0, 2
+minute = time.substring 2
+
+findNextMatchingMoment = (momentNow, hour, minute) ->
+  hourMinuteMoment = momentNow.clone().set('hour', hour).set('minute', minute)
+  if momentNow.isBefore hourMinuteMoment
+    hourMinuteMoment
+  else
+    hourMinuteMoment.add(1, 'day')
+
+startTime = moment()
+endTime = findNextMatchingMoment(startTime, hour, minute)
