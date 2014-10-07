@@ -10,4 +10,7 @@ unless process.argv.length == 4
 
 sceneName = process.argv[2]
 time = process.argv[3]
-
+hour = time[0..1]
+minute = time[2..3]
+console.log hour
+console.log minute
