@@ -1,6 +1,21 @@
 #!/usr/bin/env coffee
 
-moment = require 'moment'
+_ = require('lodash')
+Bacon = require('baconjs').Bacon
+moment = require('moment')
+request = require('request')
+WebSocket = require('ws')
+
+findNextMatchingMoment = (momentNow, hour, minute) ->
+  hourMinuteMoment = momentNow.clone().set('hour', hour).set('minute', minute)
+  if momentNow.isBefore hourMinuteMoment
+    hourMinuteMoment
+  else
+    hourMinuteMoment.add(1, 'day')
+
+pluckIdAndBri = (x) -> { _id: x._id, bri: x.bri }
+
+scale = (lo, hi) -> (x) -> (x - lo) / (hi - lo)
 
 unless process.env.HOUMIO_SITEKEY
   console.log 'Please set env variable HOUMIO_SITEKEY'
@@ -10,18 +25,59 @@ unless process.argv.length == 4 and process.argv[3].length == 4
   console.log 'Usage: transition "Scene name" 2230'
   process.exit 1
 
+sitekey = process.env.HOUMIO_SITEKEY
 sceneName = process.argv[2]
 
 time = process.argv[3]
 hour = time.substring 0, 2
 minute = time.substring 2
 
-findNextMatchingMoment = (momentNow, hour, minute) ->
-  hourMinuteMoment = momentNow.clone().set('hour', hour).set('minute', minute)
-  if momentNow.isBefore hourMinuteMoment
-    hourMinuteMoment
-  else
-    hourMinuteMoment.add(1, 'day')
-
 startTime = moment()
 endTime = findNextMatchingMoment(startTime, hour, minute)
+
+unixStartTime = startTime.format("X")
+unixEndTime = endTime.format("X")
+
+socket = new WebSocket("wss://houm.herokuapp.com")
+socket.on 'open', ->
+  socket.send JSON.stringify { command: "subscribe", sitekey: sitekey }
+  request "https://houm.herokuapp.com/api/site/#{sitekey}/light", (err, res, body) ->
+    unless res.statusCode is 200
+      console.log res.body
+      process.exit 1
+    startTimeFullState = (JSON.parse body)
+    request "https://houm.herokuapp.com/api/site/#{sitekey}/scene", (err, res, body) ->
+      scenes = JSON.parse body
+      endTimeScene = _.find scenes, name: sceneName
+      unless endTimeScene
+        console.log "No scene named '#{sceneName}'"
+        process.exit 1
+      endTimeState = endTimeScene.state
+      endTimeStateIds = _.pluck endTimeState, "_id"
+      startTimeState = _.filter startTimeFullState, (light) -> _.contains endTimeStateIds, light._id
+      startTimeStatePlucked = _.map startTimeState, pluckIdAndBri
+      endTimeStatePlucked = _.map endTimeState, pluckIdAndBri
+      startTimeStatePluckedSorted = _.sortBy startTimeStatePlucked, "_id"
+      endTimeStatePluckedSorted = _.sortBy endTimeStatePlucked, "_id"
+      zipped = _(startTimeStatePluckedSorted)
+        .zip(endTimeStatePluckedSorted)
+        .map (pair) -> { _id: pair[0]._id, fromBri: pair[0].bri, toBri: pair[1].bri }
+        .value()
+      setValues = Bacon
+        .interval(1000, '.')
+        .map -> moment().format("X")
+        .takeWhile (m) -> m <= unixEndTime
+        .filter (m) -> unixStartTime <= m
+        .map scale(unixStartTime, unixEndTime)
+        .skipDuplicates()
+        .map (factor) ->
+          zipped.map (z) ->
+            _id: z._id
+            on: true
+            bri: Math.floor( z.fromBri + (z.toBri - z.fromBri) * factor )
+        .skipDuplicates(_.isEqual)
+        .flatMap Bacon.fromArray
+      setValues.onValue (v) ->
+        socket.send JSON.stringify command: "set", data: v
+        process.stdout.write "."
+      setValues.onEnd -> process.exit 0
