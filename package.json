@@ -1,16 +1,6 @@
 {
-  "name": "transitiontoscene",
+  "name": "houmio-transition",
   "version": "0.0.0",
-  "description": "",
-  "main": "transition",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://gist.github.com/6d204747dafc062ae10d.git"
-  },
-  "author": "",
   "license": "MIT",
   "dependencies": {
     "baconjs": "^0.7.23",
