@@ -59,8 +59,7 @@ socket.on 'open', ->
       endTimeStatePlucked = _.map endTimeState, pluckIdAndBri
       startTimeStatePluckedSorted = _.sortBy startTimeStatePlucked, "_id"
       endTimeStatePluckedSorted = _.sortBy endTimeStatePlucked, "_id"
-      zipped = _(startTimeStatePluckedSorted)
-        .zip(endTimeStatePluckedSorted)
+      zipped = _(startTimeStatePluckedSorted).zip(endTimeStatePluckedSorted)
         .map (pair) -> { _id: pair[0]._id, fromBri: pair[0].bri, toBri: pair[1].bri }
         .value()
       setValues = Bacon
