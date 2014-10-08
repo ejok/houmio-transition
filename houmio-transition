@@ -45,7 +45,7 @@ socket.on 'open', ->
     unless res.statusCode is 200
       console.log res.body
       process.exit 1
-    startTimeFullState = (JSON.parse body)
+    startTimeFullState = JSON.parse body
     request "https://houm.herokuapp.com/api/site/#{sitekey}/scene", (err, res, body) ->
       scenes = JSON.parse body
       endTimeScene = _.find scenes, name: sceneName
