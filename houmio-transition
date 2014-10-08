@@ -76,7 +76,6 @@ socket.on 'open', ->
             bri: Math.floor( z.fromBri + (z.toBri - z.fromBri) * factor )
         .skipDuplicates(_.isEqual)
         .flatMap Bacon.fromArray
-      setValues.onValue (v) ->
-        socket.send JSON.stringify command: "set", data: v
-        process.stdout.write "."
+      setValues.onValue (v) -> socket.send JSON.stringify command: "set", data: v
+      setValues.onValue -> process.stdout.write "."
       setValues.onEnd -> process.exit 0
