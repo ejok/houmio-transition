@@ -9,7 +9,7 @@
 
 ## Wake up light
 
-Transition from darkness to daylights, starting at 0700, lights on at 0730.
+Transition from darkness to daylights, starting at 0700, daylights on at 0730.
 
 Execute in terminal:
 
@@ -18,4 +18,5 @@ Execute in terminal:
     EOF
 
 Note: The computer running this script must be powered and online.
+
 Note: To enable `at` on OSX, you need to execute `sudo launchctl load -w /System/Library/LaunchDaemons/com.apple.atrun.plist`.
