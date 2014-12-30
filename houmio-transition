@@ -6,13 +6,6 @@ moment = require('moment')
 request = require('request')
 WebSocket = require('ws')
 
-findNextMatchingMoment = (momentNow, hour, minute) ->
-  hourMinuteMoment = momentNow.clone().set('hour', hour).set('minute', minute)
-  if momentNow.isBefore hourMinuteMoment
-    hourMinuteMoment
-  else
-    hourMinuteMoment.add(1, 'day')
-
 pluckIdAndBri = (x) -> { _id: x._id, bri: x.bri }
 
 scale = (lo, hi) -> (x) -> (x - lo) / (hi - lo)
@@ -21,19 +14,18 @@ unless process.env.HOUMIO_SITEKEY
   console.log 'Please set env variable HOUMIO_SITEKEY'
   process.exit 1
 
-unless process.argv.length == 4 and process.argv[3].length == 4
-  console.log 'Usage: transition "Scene name" 2230'
+unless process.argv.length == 4
+  console.log 'Usage: transition "Scene name" 30'
   process.exit 1
 
 sitekey = process.env.HOUMIO_SITEKEY
 sceneName = process.argv[2]
-
-time = process.argv[3]
-hour = time.substring 0, 2
-minute = time.substring 2
+durationMinutes = process.argv[3]
 
 startTime = moment()
-endTime = findNextMatchingMoment(startTime, hour, minute)
+endTime = moment().add(durationMinutes, 'minute')
+
+console.log('Transition', sceneName, 'from ' + startTime.format(), 'to ' + endTime.format())
 
 unixStartTime = startTime.format("X")
 unixEndTime = endTime.format("X")
